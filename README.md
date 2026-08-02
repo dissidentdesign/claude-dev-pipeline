@@ -49,24 +49,54 @@ Nothing is committed, pushed, or merged. You get a branch and a verdict.
 
 ## Install
 
+From your shell — two commands, run one at a time:
+
 ```bash
-claude
+claude plugin marketplace add dissidentdesign/claude-dev-pipeline
 ```
 
-Then, once inside Claude Code:
+```bash
+claude plugin install dev-pipeline@claude-dev-pipeline
+```
+
+**Restart Claude Code.** Plugins are loaded at session start, so `/pipeline` won't
+appear in a session that was already open.
+
+That's it — `/pipeline` is now available in **every** project on this machine. No
+per-project files to copy.
+
+<details>
+<summary>Installing from inside Claude Code instead</summary>
+
+The same two steps work as slash commands, but they must be run **separately** —
+`/plugin marketplace add` opens a dialog and waits for input:
 
 ```
-/plugin marketplace add dissidentdesign/claude-dev-pipeline
+/plugin marketplace add
+```
+
+When it prompts for a marketplace source, enter **only** this, with nothing appended:
+
+```
+dissidentdesign/claude-dev-pipeline
+```
+
+Then, as a separate command:
+
+```
 /plugin install dev-pipeline
 ```
 
-That's it — `/pipeline` is now available in **every** project on this machine. No
-per-project files to copy, and `git pull` on the marketplace picks up updates.
+Pasting both lines into the source prompt at once produces
+`'... /plugin install dev-pipeline' is not a valid GitHub owner/repo shorthand` —
+the whole string was read as the repo name.
+
+</details>
 
 To update later:
 
-```
-/plugin marketplace update claude-dev-pipeline
+```bash
+claude plugin marketplace update claude-dev-pipeline
 ```
 
 > If another plugin or skill also defines `pipeline`, invoke this one explicitly as
