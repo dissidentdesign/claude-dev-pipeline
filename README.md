@@ -1,4 +1,37 @@
-# claude-dev-pipeline
+<div align="center">
+
+```
+██████╗ ██╗██████╗ ███████╗██╗     ██╗███╗   ██╗███████╗
+██╔══██╗██║██╔══██╗██╔════╝██║     ██║████╗  ██║██╔════╝
+██████╔╝██║██████╔╝█████╗  ██║     ██║██╔██╗ ██║█████╗  
+██╔═══╝ ██║██╔═══╝ ██╔══╝  ██║     ██║██║╚██╗██║██╔══╝  
+██║     ██║██║     ███████╗███████╗██║██║ ╚████║███████╗
+╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝╚══════╝
+
+        p l a n  ·  b u i l d  ·  t e s t  ·  j u d g e
+```
+
+**four agents · one command · you approve the merge**
+
+Pipeline design by **[Ray Fu](https://www.skool.com/@ray-fu-5306)** · packaged as an installable Claude Code plugin
+
+</div>
+
+```
+   ╔═══════════╗   ╔═══════════╗   ╔═══════════╗   ╔═══════════╗
+   ║  PLANNER  ║──▶║   CODER   ║──▶║  TESTER   ║──▶║ REVIEWER  ║
+   ║   opus    ║   ║  sonnet   ║   ║  sonnet   ║   ║   opus    ║
+   ╚═════╤═════╝   ╚═════╤═════╝   ╚═════╤═════╝   ╚═════╤═════╝
+         │               │               │               │
+      spec.md       changes.md    test-results.md    review.md
+         │               │               │               │
+         ▼               ▼               ▼               ▼
+   open questions?   build broke?    tests red?      NEEDS WORK?
+         └───────────────┴───────┬───────┴───────────────┘
+                                 │
+                                 ▼
+                     [ HALT — human decides ]
+```
 
 A four-agent feature pipeline for [Claude Code](https://claude.com/claude-code).
 
@@ -8,13 +41,6 @@ read-only **Reviewer** in sequence. Each agent hands off to the next through a f
 
 ```
 /pipeline add rate limiting to the login endpoint, 5 attempts per minute per IP, return 429
-```
-
-```
-  Planner  ──▶ .pipeline/spec.md          halts on open questions
-  Coder    ──▶ .pipeline/changes.md       halts on build failure
-  Tester   ──▶ .pipeline/test-results.md  halts on failing tests
-  Reviewer ──▶ .pipeline/review.md        SHIP / NEEDS WORK / BLOCK
 ```
 
 Nothing is committed, pushed, or merged. You get a branch and a verdict.
@@ -171,11 +197,28 @@ Reviewer if you want a cheaper run, at a real cost to spec and review quality.
 
 ## Credit
 
-The four-role structure, the `.pipeline/` handoff pattern, and the read-only-reviewer
-constraint come from Ray's write-up, *"How to Build a 4-Agent Dev Team That Ships
-Features While You Sleep."* This repo is an independent implementation: the agent
-prompts, spec and review formats, orchestrator gating, and preflight safety checks are
-rewritten and extended.
+```
+   ╭──────────────────────────────────────────────────────────╮
+   │  The idea behind this pipeline is Ray Fu's, not mine.    │
+   ╰──────────────────────────────────────────────────────────╯
+```
+
+**Full credit for the design goes to [Ray Fu](https://www.skool.com/@ray-fu-5306).**
+
+The four-role split, the `.pipeline/` handoff-file pattern, the model assignment
+(Opus for planning and review, Sonnet for implementation and testing), and the
+read-only-reviewer constraint all come from his write-up, *"How to Build a 4-Agent Dev
+Team That Ships Features While You Sleep."* The insight that a reviewer which *can*
+fix things stops honestly reporting them is his, and it's the load-bearing idea in the
+whole design.
+
+He walks members through the setup in his community — **[skool.com/raycfu](https://www.skool.com/raycfu)**.
+If this pipeline is useful to you, that's where it came from.
+
+This repo is an independent implementation of that design, packaged as an installable
+Claude Code plugin. The agent prompts, the spec and review output formats, the
+orchestrator's gating and preflight checks, and the `/pipeline` naming are rewritten
+and extended here — but the architecture is Ray's.
 
 ## License
 
