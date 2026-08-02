@@ -1,0 +1,12 @@
+{
+  "name": "dev-pipeline",
+  "version": "0.1.0",
+  "description": "A four-agent feature pipeline for Claude Code. /pipeline chains a Planner, Coder, Tester, and read-only Reviewer, each handing off through files in .pipeline/, and stops at the first thing a human needs to decide.",
+  "author": {
+    "name": "Jason Wright",
+    "url": "https://github.com/dissidentdesign"
+  },
+  "homepage": "https://github.com/dissidentdesign/claude-dev-pipeline",
+  "license": "MIT",
+  "keywords": ["agents", "subagents", "pipeline", "code-review", "testing", "workflow"]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "claude-dev-pipeline",
+  "description": "A four-agent feature pipeline for Claude Code: plan, implement, test, review.",
+  "owner": {
+    "name": "Jason Wright",
+    "url": "https://github.com/dissidentdesign"
+  },
+  "plugins": [
+    {
+      "name": "dev-pipeline",
+      "description": "Chains a Planner, Coder, Tester, and read-only Reviewer into one /pipeline command. Agents hand off through files in .pipeline/, and the run halts at open questions, failing tests, or a non-SHIP verdict.",
+      "author": {
+        "name": "Jason Wright"
+      },
+      "category": "workflow",
+      "source": "./",
+      "homepage": "https://github.com/dissidentdesign/claude-dev-pipeline"
+    }
+  ]
+}

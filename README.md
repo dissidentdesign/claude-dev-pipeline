@@ -1,0 +1,182 @@
+# claude-dev-pipeline
+
+A four-agent feature pipeline for [Claude Code](https://claude.com/claude-code).
+
+One command — `/pipeline` — runs a **Planner**, a **Coder**, a **Tester**, and a
+read-only **Reviewer** in sequence. Each agent hands off to the next through a file in
+`.pipeline/`, and the run stops at the first thing a human actually needs to decide.
+
+```
+/pipeline add rate limiting to the login endpoint, 5 attempts per minute per IP, return 429
+```
+
+```
+  Planner  ──▶ .pipeline/spec.md          halts on open questions
+  Coder    ──▶ .pipeline/changes.md       halts on build failure
+  Tester   ──▶ .pipeline/test-results.md  halts on failing tests
+  Reviewer ──▶ .pipeline/review.md        SHIP / NEEDS WORK / BLOCK
+```
+
+Nothing is committed, pushed, or merged. You get a branch and a verdict.
+
+---
+
+## Install
+
+```bash
+claude
+```
+
+Then, once inside Claude Code:
+
+```
+/plugin marketplace add dissidentdesign/claude-dev-pipeline
+/plugin install dev-pipeline
+```
+
+That's it — `/pipeline` is now available in **every** project on this machine. No
+per-project files to copy, and `git pull` on the marketplace picks up updates.
+
+To update later:
+
+```
+/plugin marketplace update claude-dev-pipeline
+```
+
+> If another plugin or skill also defines `pipeline`, invoke this one explicitly as
+> `/dev-pipeline:pipeline`.
+
+---
+
+## Why four agents instead of one
+
+A single agent asked to plan, implement, test, and review holds all four jobs in one
+context window. The plan, the code, the test output, and the critique compete for the
+same attention, and the agent ends up grading its own homework with the answer key
+still open.
+
+Splitting the work buys three things:
+
+**Clean context per role.** The Coder reads a spec, not a transcript of how the spec
+was argued into existence. The Tester reads what changed, not why. Each agent's window
+holds only what its job needs.
+
+**Enforced handoffs.** Agents communicate through files, not conversation. That makes
+every stage inspectable — you can read exactly what the Coder was told and exactly
+what it claims it did — and it makes the boundaries real rather than aspirational.
+
+**Structural honesty.** The Tester cannot fix the code it tests. The Reviewer cannot
+edit the code it judges. Neither restriction is a matter of the agent choosing to
+behave; the tools simply aren't there. An agent that *could* quietly patch a problem
+is measurably more inclined to patch it than report it.
+
+## The agents
+
+| Agent | Model | Tools | Output |
+|-------|-------|-------|--------|
+| `pipeline-planner` | Opus | Read, Grep, Glob, Write | `spec.md` — files, signatures, edge cases, patterns to follow, explicit out-of-scope |
+| `pipeline-coder` | Sonnet | Read, Write, Edit, Grep, Glob, Bash | the actual code, plus `changes.md` |
+| `pipeline-tester` | Sonnet | Read, Write, Edit, Grep, Glob, Bash | test files, plus `test-results.md` |
+| `pipeline-reviewer` | Opus | Read, Grep, Glob, Bash, Write | `review.md` with a verdict |
+
+**Opus for planning and review, Sonnet for implementation and testing.** Planning sets
+the ceiling — a vague spec produces vague code no matter how strong the implementer —
+and review is the last chance to catch something before it reaches you. Both run once
+per feature. Implementation and testing produce far more tokens but are bounded,
+well-specified work, which is where Sonnet is strongest per dollar. The practical
+effect is that the majority of token spend lands on the cheaper model without the
+expensive reasoning steps being cheapened.
+
+## Where the pipeline stops
+
+By design, it stops often. Every halt is a place where continuing would mean an agent
+inventing an answer:
+
+- **Open questions in the spec.** The Planner flags anything underspecified enough to
+  change the implementation rather than guessing. You answer, then re-run.
+- **Build failure.** The Coder reports rather than thrashing.
+- **Failing tests.** The Tester diagnoses and stops. It does not touch the
+  implementation — if it did, it would be marking its own work.
+- **A non-SHIP verdict.** You decide whether to fix by hand or re-run with a sharper
+  request.
+
+## Overnight use
+
+The intended shape:
+
+```bash
+git checkout -b feat/rate-limiting
+```
+
+```
+/pipeline add rate limiting to the login endpoint, 5 attempts per minute per IP, return 429 with Retry-After
+```
+
+Close the laptop. In the morning, read `.pipeline/review.md` first, then the diff. If
+the verdict is SHIP, review it yourself and merge. If it's NEEDS WORK, the findings
+are specific enough to act on directly.
+
+Read the other three handoff files too, at least for the first several runs. Seeing
+what the Planner needed in order to write a good spec is the fastest way to learn to
+write better feature requests.
+
+## Getting good results
+
+**Be specific.** "Add rate limiting, 5 attempts per minute per IP, 429 with
+`Retry-After`" produces a tight spec. "Add rate limiting" produces a page of open
+questions.
+
+**Start small.** One endpoint, one module, one bounded refactor. Trust the pipeline on
+work you can verify at a glance before handing it something you can't.
+
+**One feature per run.** The handoff files are single-slot. The command clears them at
+the start of each run for exactly this reason.
+
+**Parallel features need worktrees.** Two pipelines in one checkout will edit the same
+files. Use `git worktree add` and run one per tree.
+
+## Honest limitations
+
+- **The Reviewer's read-only property is enforced by prompt, not by sandbox.** It has
+  no `Edit` tool, but it does have `Bash` (it needs `git diff`) and `Write` (it needs
+  to produce `review.md`). A determined model could route around the restriction. The
+  instruction is explicit and models follow it in practice, but treat the guarantee as
+  strong-convention, not airtight.
+- **The Reviewer reads the same spec the Coder did.** A flawed spec faithfully
+  implemented can still earn a SHIP. The Reviewer checks the code against the spec; it
+  does not re-litigate whether the spec was right. You are the check on that.
+- **Test quality is bounded by the repo's existing test setup.** The Tester matches
+  what's already there and won't scaffold a framework from nothing.
+- **It's not free.** Two Opus stages per feature. Small, well-scoped requests are
+  cheaper and produce better specs anyway.
+
+## Repo layout
+
+```
+.claude-plugin/
+  plugin.json          plugin manifest
+  marketplace.json     lets this repo be added as a marketplace directly
+agents/
+  pipeline-planner.md
+  pipeline-coder.md
+  pipeline-tester.md
+  pipeline-reviewer.md
+commands/
+  pipeline.md          the orchestrator
+```
+
+To customize, edit the agent files and re-run `/plugin marketplace update`. The models
+are set in each agent's frontmatter — swap `opus` for `sonnet` in the Planner and
+Reviewer if you want a cheaper run, at a real cost to spec and review quality.
+
+## Credit
+
+The four-role structure, the `.pipeline/` handoff pattern, and the read-only-reviewer
+constraint come from Ray's write-up, *"How to Build a 4-Agent Dev Team That Ships
+Features While You Sleep."* This repo is an independent implementation: the agent
+prompts, spec and review formats, orchestrator gating, and preflight safety checks are
+rewritten and extended.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

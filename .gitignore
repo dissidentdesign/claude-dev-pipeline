@@ -1,0 +1,4 @@
+# Pipeline handoff files are per-run scratch, never committed.
+.pipeline/
+
+.DS_Store
